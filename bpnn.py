@@ -1,9 +1,11 @@
 import torch
+from torch import nn
 import numpy as np
 import time
 import torchvision
 from torchvision import transforms
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # MNIST 包含 70,000 张手写数字图像: 60,000 张用于训练，10,000 张用于测试。
 # 图像是灰度的，28×28 像素的，并且居中的，以减少预处理和加快运行。
@@ -34,7 +36,7 @@ class BPNetwork(torch.nn.Module):
         输入是第一个隐层的输出，
         输出为第二个隐层的输入，大小为 64。
         """
-        self.linear2 = torch.nn.Linear(128, 64)
+        self.linear2 = nn.Sequential(torch.nn.Linear(128, 64))
         # 在第二个隐层使用 ReLU 激活函数
         self.relu2 = torch.nn.ReLU()
         """
@@ -53,13 +55,13 @@ class BPNetwork(torch.nn.Module):
         """
         # 首先将 x 的 shape 转为(64, 784)
         x = x.view(x.shape[0], -1)
-
         # 接下来进行前向传播
         x = self.linear1(x)
         x = self.relu1(x)
         x = self.linear2(x)
         x = self.relu2(x)
         x = self.linear3(x)
+        print(x.shape)
         x = self.softmax(x)
 
         # 上述一串，可以直接使用 x = self.model(x) 代替。
@@ -67,7 +69,7 @@ class BPNetwork(torch.nn.Module):
         return x
 
 print("preparing model\n")
-model = BPNetwork()
+model = BPNetwork().to(device)
 # model=model.cuda()
 
 criterion = torch.nn.NLLLoss()  # 定义 loss 函数
@@ -79,7 +81,7 @@ for i in range(epochs):
     running_loss = 0  # 本轮的损失值
     for images, labels in trainloader:
         # 前向传播获取预测值
-
+        images, labels = images.to(device), labels.to(device)
         output = model(images)
         # 计算损失
         loss = criterion(output, labels)
@@ -96,4 +98,4 @@ for i in range(epochs):
     print("Epoch {} - Training loss: {}".format(i, running_loss / len(trainloader)))
 end_time = time.time()
 print("耗时: {:.2f}秒".format(end_time - start_time))
-torch.save(model, 'bpmodel.pth')
+# torch.save(model, 'bpmodel.pth')
